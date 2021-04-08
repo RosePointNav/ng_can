@@ -6,8 +6,9 @@ defmodule Ng.Can do
   """
   @default_bufsize 106496
   #keep up to 1000 can frames in state, serve up to 100 at a time
-  @rcv_bufsize 1000
-  @rcv_chunksize 100
+  #@rcv_bufsize 1000
+  #@rcv_chunksize 100
+  
   defmodule State do
     defstruct [
       port: nil,
@@ -43,7 +44,7 @@ defmodule Ng.Can do
     GenServer.cast(pid, :await_read)
   end
 
-  def init(args) do
+  def init(_args) do
     executable = :code.priv_dir(:ng_can) ++ '/ng_can'
     port = Port.open({:spawn_executable, executable},
       [{:args, []},
@@ -69,7 +70,7 @@ defmodule Ng.Can do
 
   def handle_info({_, {:data, <<?r, _::binary>>}}, state), do: {:noreply, state}
 
-  def handle_info({_, {:exit_status, status}}, state) do
+  def handle_info({_, {:exit_status, status}}, _state) do
     Logger.info("can port exited with status: #{inspect status}")
     exit(:port_err)
   end
@@ -108,12 +109,12 @@ defmodule Ng.Can do
   end
 
   #frames is a list of tuples {can_identifier, can_payload}
-  def handle_call({:write, frames}, {from_pid, _}, state) do
+  def handle_call({:write, frames}, {_from_pid, _}, state) do
     response = call_port(state, :write, frames)
     {:reply, response, state}
   end
 
-  def handle_call(:read, {from_pid, _}, state) do
+  def handle_call(:read, {_from_pid, _}, state) do
     response = call_port(state, :read, nil)
     {:reply, response, state}
   end
@@ -122,7 +123,7 @@ defmodule Ng.Can do
     {:noreply, forward_frames(%{state | awaiting_read: true})}
   end
 
-  def terminate(reason, state) do
+  def terminate(reason, _state) do
     Logger.info "Ng.Can terminating with reason: #{inspect reason}"
   end
 
